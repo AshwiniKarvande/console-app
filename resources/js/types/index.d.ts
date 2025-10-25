@@ -41,3 +41,10 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+
+export interface AmcType {
+    id: number;
+    name: string;
+    status?: string;
+    aum?: number
+}

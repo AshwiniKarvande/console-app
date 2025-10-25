@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('schemes', function (Blueprint $table) {
+        Schema::create('scheme_aum_histories', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->foreignId('fund_id')->nullable()->references('id')->on('funds')->onDelete('cascade');
-            $table->foreignId('amc_id')->references('id')->on('amcs')->onDelete('cascade');
-            $table->string('status');
+            $table->foreignId('scheme_id')->references('id')->on('schemes')->onDelete('cascade');
+            $table->date('start_date');//strdtAUM
+            $table->decimal('aum', 12, 2);
+
+            $table->unique(['scheme_id', 'start_date']);
         });
     }
 
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('schemes');
+        Schema::dropIfExists('scheme_aum_histories');
     }
 };

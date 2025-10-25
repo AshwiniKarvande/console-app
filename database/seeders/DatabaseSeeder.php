@@ -25,6 +25,9 @@ class DatabaseSeeder extends Seeder
         );
         $this->call([
             AmcSeeder::class,
+            FundSeeder::class,
+            SchemeSeeder::class,
+            FundAumHistorySeeder::class,
         ]);
     }
 }
