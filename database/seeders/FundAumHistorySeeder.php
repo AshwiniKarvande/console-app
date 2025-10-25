@@ -29,7 +29,9 @@ class FundAumHistorySeeder extends Seeder
         3. Get all period for all years
         4. Get the data for all periods and update
         */
-        Amc::all()->each(function (Amc $amc) {
+        $amcs = Amc::all();
+        // $amcs = Amc::where("id", 64)->get();
+        $amcs->each(function (Amc $amc) {
             Log::info("Processing AMC: " . $amc->id ." = ". $amc->name);
             print("Processing AMC: " . $amc->id ." = ". $amc->name. PHP_EOL);
 
@@ -86,20 +88,34 @@ class FundAumHistorySeeder extends Seeder
     {
         $periodIds = $this->getPeriodIds($amcId, $yearIds);
         print(' Found periodIds: '. count($periodIds) .PHP_EOL);
+        
+        $fundAumHistory = [];
+        $schemeAumHistory = [];
+        $schemeFundMap = []; // To assign fund_id to scheme
+
         $chunks = array_chunk($periodIds, 10); // Chunk to avoid OOM error
         foreach ($chunks as $chunk) {
-            $this->processPeriodChunk($amcId, $chunks, $categoriesWithLargeAum);
+            $arr = $this->fetchPeriodChunkData($amcId, $chunk, $categoriesWithLargeAum);
+            
+            $fundAumHistory = array_merge($fundAumHistory, $arr['fundAums']);
+            $schemeAumHistory = array_merge($schemeAumHistory, $arr['schemeAums']);
+            $schemeFundMap = $schemeFundMap + $arr['schemeFundMap'];
         }
+        $this->updateSchemeForFundId($schemeFundMap);
+        print ("Fund aum history count: " . count($fundAumHistory) . PHP_EOL);
+        print ("Scheme aum history: " . count($schemeAumHistory) . PHP_EOL);
+        DB::table('fund_aum_histories')->insertOrIgnore($fundAumHistory);
+        DB::table('scheme_aum_histories')->insertOrIgnore($schemeAumHistory);
     }
 
-    private function processPeriodChunk(int $amcId, array $periodIds, array $categoriesWithLargeAum) {
+    private function fetchPeriodChunkData(int $amcId, array $periodIds, array $categoriesWithLargeAum): array {
         $responses = $this->getAumResponseForPeriods($amcId, $periodIds);
 
         $fundIdByCategory = $this->getFundIdByCategory($amcId);
         
         $fundAumHistory = [];
         $schemeAumHistory = [];
-        $schemeFundMap = []; // To assign fund_id to scheme
+        $schemeFundMap = [];
         foreach ($responses as $response) {
             $jsonData = $response->json();
             foreach ($jsonData["data"] as $obj) {
@@ -132,11 +148,12 @@ class FundAumHistorySeeder extends Seeder
                 }
             }
         }
-        $this->updateSchemeForFundId($schemeFundMap);
-        print ("Fund aum history count: " . count($fundAumHistory) . PHP_EOL);
-        print ("Scheme aum history: " . count($schemeAumHistory) . PHP_EOL);
-        DB::table('fund_aum_histories')->insertOrIgnore($fundAumHistory);
-        DB::table('scheme_aum_histories')->insertOrIgnore($schemeAumHistory);
+        
+        return [
+            'fundAums' => $fundAumHistory, 
+            'schemeAums' => $schemeAumHistory,
+            'schemeFundMap'=> $schemeFundMap
+        ];
     }
 
     private function updateSchemeForFundId($schemeFundMap)

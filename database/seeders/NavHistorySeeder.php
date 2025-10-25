@@ -20,7 +20,7 @@ class NavHistorySeeder extends Seeder
         $periodId = $this->getRecentPeriodId();
         
         foreach (Amc::all() as $amc) {
-            $amc->id
+            $amc->id;
         }
 
     }
